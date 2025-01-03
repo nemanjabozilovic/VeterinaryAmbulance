@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">VeterinaryAmbulance</string>
+    <string name="app_title">Veterinary Ambulance</string>
+    <string name="header_image">Header image</string>
+    <string name="username_label">Username</string>
+    <string name="username_hint">Enter username</string>
+    <string name="password_label">Password</string>
+    <string name="password_hint">Enter password</string>
+    <string name="login_button_text">Log in</string>
+    <string name="reset_button_text">Reset</string>
+    <string name="welcome_message">Welcome, %1$s</string>
+    <string name="logout_button">Logout</string>
+    <string name="all_appointments_label">All Appointments</string>
+    <string name="sort_hint">Search appointments</string>
+    <string name="sort_button_text">Sort</string>
+    <string name="cancel_appointment_label">Cancel Appointment</string>
+    <string name="cancel_appointment_hint">Enter Appointment ID</string>
+    <string name="confirm_button">Confirm</string>
+    <string name="reset_creation_button">Reset</string>
+    <string name="schedule_appointment_label">Schedule Appointment</string>
+    <string name="date_time_hint">Pick Date &amp; Time</string>
+    <string name="problem_description_hint">Describe the Problem</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="select_pet_description">Please select pet from the dropdown below:</string>
+</resources>
