@@ -1,7 +1,9 @@
 package com.example.veterinaryambulance.ui.activities;
 
+import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,12 +15,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.veterinaryambulance.R;
 import com.example.veterinaryambulance.data.datasources.databases.DatabaseHelper;
+import com.example.veterinaryambulance.data.models.Pet;
 import com.example.veterinaryambulance.data.repositories.AppointmentRepository;
 import com.example.veterinaryambulance.data.repositories.PetRepository;
 import com.example.veterinaryambulance.domain.models.AppointmentDTO;
@@ -38,7 +42,7 @@ public class HomeActivity extends AppCompatActivity {
     private RecyclerView rvAppointments;
     private Spinner spinnerPet;
     private EditText etProblemDescription, etCancelAppointmentId, etSearchAppointments;
-    private Button btnConfirmAppointment, btnResetAppointmentCreation, btnCancelAppointment, btnSortAppointments;
+    private Button btnConfirmAppointment, btnResetAppointmentCreation, btnCancelAppointment, btnSortAppointments, btnLogout;
 
     private VeterinarianDTO currentVeterinarian;
     private AppointmentUseCase appointmentUseCase;
@@ -91,9 +95,9 @@ public class HomeActivity extends AppCompatActivity {
         btnConfirmAppointment = findViewById(R.id.btnConfirmAppointment);
         btnResetAppointmentCreation = findViewById(R.id.btnResetAppointmentCreation);
         btnCancelAppointment = findViewById(R.id.btnCancelAppointment);
-        btnSortAppointments = findViewById(R.id.btnSortAppointments);
-
         btnCancelAppointment.setEnabled(false);
+        btnSortAppointments = findViewById(R.id.btnSortAppointments);
+        btnLogout = findViewById(R.id.btnLogout);
     }
 
     private void initializeDependencies() {
@@ -116,6 +120,39 @@ public class HomeActivity extends AppCompatActivity {
         rvAppointments.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AppointmentsAdapter(new ArrayList<>(), petUseCase);
         rvAppointments.setAdapter(adapter);
+        adapter.setOnItemClickListener(this::showAppointmentDetailsDialog);
+    }
+
+    private void showAppointmentDetailsDialog(AppointmentDTO appointment) {
+        PetDTO pet = petUseCase.getPetById(appointment.getPetId());
+
+        @SuppressLint("DefaultLocale")
+        String appointmentDetails = String.format(
+                "ID: %d\n" +
+                "Pet Name: %s\n" +
+                "Pet Breed: %s\n" +
+                "Pet Age: %s\n" +
+                "Date & Time: %s\n" +
+                "Case Description: %s\n" +
+                "Owner Name: %s\n" +
+                "Owner Contact: %s\n",
+                appointment.getId(),
+                pet.getName() != null ? pet.getName() : "N/A",
+                pet.getBreed() != null ? pet.getBreed() : "N/A",
+                pet.getAge() != 0 ? String.valueOf(pet.getAge()) : "N/A",
+                (appointment.getDate() != null && appointment.getTime() != null)
+                        ? String.format("%s %s", appointment.getDate(), appointment.getTime())
+                        : "N/A",
+                appointment.getCaseDescription() != null ? appointment.getCaseDescription() : "N/A",
+                pet.getOwnerName() != null ? pet.getOwnerName() : "N/A",
+                pet.getOwnerContact() != null ? pet.getOwnerContact() : "N/A"
+        );
+
+        new AlertDialog.Builder(this)
+                .setTitle("Appointment Details")
+                .setMessage(appointmentDetails)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private void setupListeners() {
@@ -151,6 +188,7 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         btnSortAppointments.setOnClickListener(v -> sortAppointmentsByDateTime());
+        btnLogout.setOnClickListener(v -> logout());
     }
 
     private void openDateTimePicker() {
@@ -316,5 +354,13 @@ public class HomeActivity extends AppCompatActivity {
         catch (IllegalArgumentException e) {
             Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void logout() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finishAffinity();
+        System.exit(0);
     }
 }

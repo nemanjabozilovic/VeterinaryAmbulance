@@ -6,7 +6,7 @@
     <string name="username_hint">Enter username</string>
     <string name="password_label">Password</string>
     <string name="password_hint">Enter password</string>
-    <string name="login_button_text">Log in</string>
+    <string name="login_button_text">Login</string>
     <string name="reset_button_text">Reset</string>
     <string name="welcome_message">Welcome, %1$s</string>
     <string name="logout_button">Logout</string>
@@ -21,5 +21,4 @@
     <string name="date_time_hint">Pick Date &amp; Time</string>
     <string name="problem_description_hint">Describe the Problem</string>
     <string name="cancel_button">Cancel</string>
-    <string name="select_pet_description">Please select pet from the dropdown below:</string>
 </resources>

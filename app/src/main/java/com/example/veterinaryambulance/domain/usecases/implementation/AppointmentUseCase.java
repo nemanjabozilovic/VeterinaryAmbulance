@@ -75,7 +75,7 @@ public class AppointmentUseCase implements IAppointmentUseCase {
         if (appointmentDateTime.isBefore(now) ||
                 (appointmentDateTime.toLocalDate().equals(now.toLocalDate()) &&
                         appointmentDateTime.getHour() == now.getHour())) {
-            throw new IllegalArgumentException("Cannot cancel an appointment that is in the past or during the current hour.");
+            throw new IllegalArgumentException("Appointments cannot be canceled during the current hour.");
         }
 
         return appointmentRepository.delete(appointmentId);

@@ -11,18 +11,27 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.veterinaryambulance.R;
 import com.example.veterinaryambulance.domain.models.AppointmentDTO;
+import com.example.veterinaryambulance.domain.models.PetDTO;
 import com.example.veterinaryambulance.domain.usecases.implementation.PetUseCase;
 
 import java.util.List;
 
 public class AppointmentsAdapter extends RecyclerView.Adapter<AppointmentsAdapter.AppointmentViewHolder> {
-
     private List<AppointmentDTO> appointments;
     private final PetUseCase petUseCase;
+    private OnItemClickListener onItemClickListener;
+
+    public interface OnItemClickListener {
+        void onItemClick(AppointmentDTO appointment);
+    }
 
     public AppointmentsAdapter(List<AppointmentDTO> appointments, PetUseCase petUseCase) {
         this.appointments = appointments;
         this.petUseCase = petUseCase;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.onItemClickListener = listener;
     }
 
     @NonNull
@@ -35,21 +44,27 @@ public class AppointmentsAdapter extends RecyclerView.Adapter<AppointmentsAdapte
     @Override
     public void onBindViewHolder(@NonNull AppointmentViewHolder holder, int position) {
         AppointmentDTO appointment = appointments.get(position);
-
+        PetDTO pet = petUseCase.getPetById(appointment.getPetId());
         if (appointment.getPetName() == null || appointment.getPetName().isEmpty()) {
-            String petName = petUseCase.getPetById(appointment.getPetId()).getName();
+            String petName = pet.getName();
             appointment.setPetName(petName);
         }
 
         String details = String.format(
-                "ID: %s\nPet: %s\nDate: %s\nTime: %s\nIssue: %s",
+                "ID: %s\nPet: %s\nPet Breed: %s\nDate: %s\nTime: %s",
                 appointment.getId(),
                 appointment.getPetName() != null ? appointment.getPetName() : "Unknown",
+                pet.getBreed(),
                 appointment.getDate(),
-                appointment.getTime(),
-                appointment.getCaseDescription()
+                appointment.getTime()
         );
         holder.bind(details);
+
+        holder.itemView.setOnClickListener(v -> {
+            if (onItemClickListener != null) {
+                onItemClickListener.onItemClick(appointment);
+            }
+        });
     }
 
     @Override
