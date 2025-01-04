@@ -3,6 +3,8 @@ package com.example.veterinaryambulance.ui.activities;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -28,14 +30,15 @@ import com.example.veterinaryambulance.ui.adapters.AppointmentsAdapter;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
     private TextView tvWelcome, tvDateTime;
     private RecyclerView rvAppointments;
     private Spinner spinnerPet;
-    private EditText etProblemDescription, etCancelAppointmentId;
-    private Button btnConfirmAppointment, btnResetAppointmentCreation, btnCancelAppointment;
+    private EditText etProblemDescription, etCancelAppointmentId, etSearchAppointments;
+    private Button btnConfirmAppointment, btnResetAppointmentCreation, btnCancelAppointment, btnSortAppointments;
 
     private VeterinarianDTO currentVeterinarian;
     private AppointmentUseCase appointmentUseCase;
@@ -45,6 +48,11 @@ public class HomeActivity extends AppCompatActivity {
     private String selectedDate, selectedTime;
     private List<PetDTO> petList;
     private PetDTO selectedPet;
+
+    private List<AppointmentDTO> appointmentList;
+    private List<AppointmentDTO> originalListOfAppointments;
+
+    private boolean isSorted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,9 +87,12 @@ public class HomeActivity extends AppCompatActivity {
         spinnerPet = findViewById(R.id.spinnerPet);
         etProblemDescription = findViewById(R.id.etProblemDescription);
         etCancelAppointmentId = findViewById(R.id.etCancelAppointmentId);
+        etSearchAppointments = findViewById(R.id.etSearchAppointments);
         btnConfirmAppointment = findViewById(R.id.btnConfirmAppointment);
         btnResetAppointmentCreation = findViewById(R.id.btnResetAppointmentCreation);
         btnCancelAppointment = findViewById(R.id.btnCancelAppointment);
+        btnSortAppointments = findViewById(R.id.btnSortAppointments);
+
         btnCancelAppointment.setEnabled(false);
     }
 
@@ -113,7 +124,7 @@ public class HomeActivity extends AppCompatActivity {
         btnResetAppointmentCreation.setOnClickListener(v -> resetAppointmentFields());
         btnCancelAppointment.setOnClickListener(v -> cancelAppointment());
 
-        etCancelAppointmentId.addTextChangedListener(new android.text.TextWatcher() {
+        etCancelAppointmentId.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
@@ -123,8 +134,23 @@ public class HomeActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(android.text.Editable s) {}
+            public void afterTextChanged(Editable s) {}
         });
+
+        etSearchAppointments.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchAppointments(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        btnSortAppointments.setOnClickListener(v -> sortAppointmentsByDateTime());
     }
 
     private void openDateTimePicker() {
@@ -148,9 +174,10 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadAppointments() {
-        List<AppointmentDTO> appointments = appointmentUseCase.getAllAppointments();
-        if (appointments != null && !appointments.isEmpty()) {
-            adapter.updateAppointments(this, appointments);
+        appointmentList = appointmentUseCase.getAllAppointments();
+        if (appointmentList != null && !appointmentList.isEmpty()) {
+            originalListOfAppointments = new ArrayList<>(appointmentList);
+            adapter.updateAppointments(this, appointmentList);
         }
     }
 
@@ -188,6 +215,37 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
+    private void searchAppointments(String query) {
+        if (query == null || query.isEmpty()) {
+            adapter.updateAppointments(this, appointmentList);
+            return;
+        }
+
+        List<AppointmentDTO> filteredAppointments = new ArrayList<>();
+        for (AppointmentDTO appointment : appointmentList) {
+            if (appointment.getPetName() != null && appointment.getPetName().toLowerCase().contains(query.toLowerCase())) {
+                filteredAppointments.add(appointment);
+            }
+        }
+
+        adapter.updateAppointments(this, filteredAppointments);
+    }
+
+    private void sortAppointmentsByDateTime() {
+        if (appointmentList == null || appointmentList.isEmpty()) return;
+
+        if (isSorted) {
+            appointmentList = new ArrayList<>(originalListOfAppointments);
+        } else {
+            appointmentList.sort(Comparator.comparing(AppointmentDTO::getDate)
+                    .thenComparing(AppointmentDTO::getTime));
+            Toast.makeText(this, "Appointments sorted by date and time", Toast.LENGTH_SHORT).show();
+        }
+
+        isSorted = !isSorted;
+        adapter.updateAppointments(this, appointmentList);
+    }
+
     private void scheduleAppointment() {
         if (selectedPet == null ||
                 selectedDate == null ||
@@ -210,45 +268,52 @@ public class HomeActivity extends AppCompatActivity {
             AppointmentDTO newAppointment = appointmentUseCase.insertAppointment(appointment);
 
             if (newAppointment != null) {
-                Toast.makeText(this, "Appointment scheduled successfully", Toast.LENGTH_SHORT).show();
-                loadAppointments();
+                Toast.makeText(this, "Appointment created successfully", Toast.LENGTH_SHORT).show();
                 resetAppointmentFields();
+                loadAppointments();
+                isSorted = false;
             } else {
-                Toast.makeText(this, "Failed to schedule appointment", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Failed to create the appointment", Toast.LENGTH_SHORT).show();
             }
-        } catch (IllegalArgumentException e) {
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void resetAppointmentFields() {
         spinnerPet.setSelection(0);
-        tvDateTime.setText(getString(R.string.date_time_hint));
-        etProblemDescription.setText("");
+        tvDateTime.setText("");
         selectedDate = null;
         selectedTime = null;
+        etProblemDescription.setText("");
     }
 
     private void cancelAppointment() {
-        String appointmentIdText = etCancelAppointmentId.getText().toString();
-        if (appointmentIdText.isEmpty()) {
-            Toast.makeText(this, "Enter the appointment ID to cancel", Toast.LENGTH_SHORT).show();
+        String input = etCancelAppointmentId.getText().toString().trim();
+        if (input.isEmpty()) {
+            Toast.makeText(this, "Please enter an appointment ID", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int appointmentId;
+        try {
+            appointmentId = Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Invalid appointment ID", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
-            int appointmentId = Integer.parseInt(appointmentIdText);
-            boolean isCanceled = appointmentUseCase.deleteAppointment(appointmentId);
-
-            if (isCanceled) {
+            boolean success = appointmentUseCase.deleteAppointment(appointmentId);
+            if (success) {
                 Toast.makeText(this, "Appointment canceled successfully", Toast.LENGTH_SHORT).show();
+                etCancelAppointmentId.setText("");
                 loadAppointments();
             } else {
-                Toast.makeText(this, "Failed to cancel appointment", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Failed to cancel the appointment", Toast.LENGTH_SHORT).show();
             }
-        } catch (NumberFormatException e) {
-            Toast.makeText(this, "Invalid appointment ID", Toast.LENGTH_SHORT).show();
-        } catch (IllegalArgumentException e) {
+        }
+        catch (IllegalArgumentException e) {
             Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }

@@ -90,20 +90,21 @@ public class AppointmentUseCase implements IAppointmentUseCase {
 
         List<Appointment> existingAppointments = appointmentRepository.getAll();
         for (Appointment existing : existingAppointments) {
-            if ((!isInsert && existing.getId() == appointment.getId()) ||
-                    existing.getVeterinarianId() != appointment.getVeterinarianId()) {
+            if (!isInsert && existing.getId() == appointment.getId()) {
                 continue;
             }
 
-            LocalDateTime existingDateTime = parseDateTime(existing.getDate(), existing.getTime());
+            if (existing.getVeterinarianId() == appointment.getVeterinarianId()) {
+                LocalDateTime existingDateTime = parseDateTime(existing.getDate(), existing.getTime());
 
-            if (existingDateTime.equals(appointmentDateTime)) {
-                throw new IllegalArgumentException("An appointment already exists for this date and time.");
-            }
+                if (existingDateTime.equals(appointmentDateTime)) {
+                    throw new IllegalArgumentException("An appointment already exists for this veterinarian at the specified date and time.");
+                }
 
-            if (appointmentDateTime.isBefore(existingDateTime.plusHours(1)) &&
-                    appointmentDateTime.isAfter(existingDateTime.minusHours(1))) {
-                throw new IllegalArgumentException("Appointments must be scheduled at least 1 hour apart.");
+                if (appointmentDateTime.isBefore(existingDateTime.plusHours(1)) &&
+                        appointmentDateTime.isAfter(existingDateTime.minusHours(1))) {
+                    throw new IllegalArgumentException("Appointments must be scheduled at least 1 hour apart.");
+                }
             }
         }
     }

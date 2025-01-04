@@ -5,71 +5,73 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.veterinaryambulance.R;
 import com.example.veterinaryambulance.domain.models.AppointmentDTO;
-import com.example.veterinaryambulance.domain.usecases.interfaces.IPetUseCase;
+import com.example.veterinaryambulance.domain.usecases.implementation.PetUseCase;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class AppointmentsAdapter extends RecyclerView.Adapter<AppointmentsAdapter.ViewHolder> {
-    private final List<AppointmentDTO> appointments;
-    private final IPetUseCase petUseCase;
+public class AppointmentsAdapter extends RecyclerView.Adapter<AppointmentsAdapter.AppointmentViewHolder> {
 
-    public AppointmentsAdapter(List<AppointmentDTO> appointments, IPetUseCase petUseCase) {
-        this.appointments = appointments != null ? appointments : new ArrayList<>();
+    private List<AppointmentDTO> appointments;
+    private final PetUseCase petUseCase;
+
+    public AppointmentsAdapter(List<AppointmentDTO> appointments, PetUseCase petUseCase) {
+        this.appointments = appointments;
         this.petUseCase = petUseCase;
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_appointment, parent, false);
-        return new ViewHolder(view);
+    public AppointmentViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_appointment, parent, false);
+        return new AppointmentViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull AppointmentViewHolder holder, int position) {
         AppointmentDTO appointment = appointments.get(position);
 
-        String dateTime = "Date & Time: " + appointment.getDate() + " " + appointment.getTime();
-        appointment.setPetName(petUseCase.getPetById(appointment.getPetId()).getName());
+        if (appointment.getPetName() == null || appointment.getPetName().isEmpty()) {
+            String petName = petUseCase.getPetById(appointment.getPetId()).getName();
+            appointment.setPetName(petName);
+        }
 
-        String details = "ID: " + appointment.getId() +
-                "\nPet Name: " + appointment.getPetName() +
-                "\n" + dateTime +
-                "\nCase: " + appointment.getCaseDescription();
-
-        holder.tvDetails.setText(details);
+        String details = String.format(
+                "ID: %s\nPet: %s\nDate: %s\nTime: %s\nIssue: %s",
+                appointment.getId(),
+                appointment.getPetName() != null ? appointment.getPetName() : "Unknown",
+                appointment.getDate(),
+                appointment.getTime(),
+                appointment.getCaseDescription()
+        );
+        holder.bind(details);
     }
 
     @Override
     public int getItemCount() {
-        return appointments.size();
+        return appointments != null ? appointments.size() : 0;
     }
 
-    public void updateAppointments(Context context, List<AppointmentDTO> newAppointments) {
-        appointments.clear();
-        if (newAppointments != null) {
-            appointments.addAll(newAppointments);
-        }
+    public void updateAppointments(Context context, List<AppointmentDTO> updatedAppointments) {
+        this.appointments = updatedAppointments;
         notifyDataSetChanged();
-
-        Toast.makeText(context, "Appointments updated: " + appointments.size() + " items.", Toast.LENGTH_SHORT).show();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDetails;
+    static class AppointmentViewHolder extends RecyclerView.ViewHolder {
+        private final TextView tvAppointmentDetails;
 
-        ViewHolder(View itemView) {
+        public AppointmentViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvDetails = itemView.findViewById(R.id.tvAppointmentDetails);
+            tvAppointmentDetails = itemView.findViewById(R.id.tvAppointmentDetails);
+        }
+
+        public void bind(String details) {
+            tvAppointmentDetails.setText(details);
         }
     }
 }
